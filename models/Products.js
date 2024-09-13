@@ -48,4 +48,26 @@ export const searchProducts = async (name, category) => {
 
     const result = await pool.query(query, params);
     return result.rows;
+
+}
+
+export const placeOrder = async (buyerId, productId, quantity, totalPrice) => {
+    const result = await pool.query(
+        `INSERT INTO orders (buyer_id, product_id, quantity, total_price) 
+         VALUES ($1, $2, $3, $4) RETURNING *`,
+        [buyerId, productId, quantity, totalPrice]
+    );
+    return result.rows[0];
+};
+
+
+export const getOrdersForSeller = async (sellerId) => {
+    const result = await pool.query(
+        `SELECT orders.*, users.name AS buyer_name, products.name AS product_name FROM orders
+         JOIN products ON orders.product_id = products.id
+         JOIN users ON orders.buyer_id = users.id
+         WHERE products.seller_id = $1`,
+        [sellerId]
+    );
+    return result.rows;
 };

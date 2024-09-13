@@ -1,4 +1,5 @@
-import { addProduct, deleteProduct, editProduct, searchProducts } from "../models/Products.js";
+import { addProduct, deleteProduct, editProduct, getOrdersForSeller, placeOrder, searchProducts } from "../models/Products.js";
+import pool from "../config/db.js";
 
 export const addNewProduct = async (req, res) => {
     try {
@@ -70,5 +71,38 @@ export const searchProductsByQuery = async (req, res) => {
         res.json({ message: 'Products found', products });
     } catch (error) {
         res.status(500).json({ message: 'Error retrieving products', error: error.message });
+    }
+};
+
+
+export const createOrder = async (req, res) => {
+    try {
+        const buyerId = req.user.userId;
+        const { productId, quantity } = req.body;
+
+        const product = await pool.query('SELECT price FROM products WHERE id = $1', [productId]);
+        if (product.rows.length === 0) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        const totalPrice = product.rows[0].price * quantity;
+        const order = await placeOrder(buyerId, productId, quantity, totalPrice);
+
+        res.json({ message: 'Order placed successfully', order });
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).json({ message: 'Error placing order' });
+    }
+};
+
+export const viewSellerOrders = async (req, res) => {
+    try {
+        const sellerId = req.user.userId;
+        const orders = await getOrdersForSeller(sellerId);
+
+        res.json({ message: 'Orders retrieved', orders });
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).json({ message: 'Error retrieving orders' });
     }
 };
